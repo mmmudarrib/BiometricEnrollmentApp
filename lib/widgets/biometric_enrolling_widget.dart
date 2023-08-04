@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 
 class BiometricEnrollingWidget extends StatefulWidget {
-  const BiometricEnrollingWidget({super.key});
+  final VoidCallback onNextPage;
+  const BiometricEnrollingWidget({super.key, required this.onNextPage});
 
   @override
   State<BiometricEnrollingWidget> createState() =>
@@ -10,6 +12,31 @@ class BiometricEnrollingWidget extends StatefulWidget {
 }
 
 class _BiometricEnrollingWidgetState extends State<BiometricEnrollingWidget> {
+  @override
+  void initState() {
+    setupCode();
+    super.initState();
+  }
+
+  String enrollCount = "Place the Finger on Scanner 3 times";
+  static const platform = MethodChannel('abc');
+  Future<void> setupCode() async {
+    platform.setMethodCallHandler((call) async {
+      print("Method Invoked::Name${call.method}::Arguments::${call.arguments}");
+      if (call.method == "Done Registering") {
+        setState(() {
+          enrollCount = "Registered Successfully";
+        });
+        await platform.invokeMethod("startIdentify");
+        widget.onNextPage();
+      } else if (call.method == "registering") {
+        setState(() {
+          enrollCount = call.arguments.toString();
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -28,30 +55,14 @@ class _BiometricEnrollingWidgetState extends State<BiometricEnrollingWidget> {
                     "Let's Enroll Biometrics for Jhon Doe",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const Text(
-                    "Please Place your Finger on Scanner(1/3)",
-                    style: TextStyle(fontSize: 16, wordSpacing: 4),
+                  Text(
+                    enrollCount,
+                    style: const TextStyle(fontSize: 16, wordSpacing: 4),
                   ),
                   Center(
                     child: SizedBox(
                         height: 150,
                         child: Image.asset("assets/images/fingerprint.png")),
-                  ),
-                  Container(
-                    height: 44.0,
-                    width: 200,
-                    decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [
-                      Color.fromARGB(255, 2, 173, 102),
-                      Colors.blue
-                    ])),
-                    child: ElevatedButton(
-                      onPressed: () async {},
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent),
-                      child: const Text('Proceed Next'),
-                    ),
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../widgets/biometric_enrolling_widget.dart';
 import '../widgets/biometric_preenroll_widget.dart';
@@ -13,16 +14,22 @@ class EnrollBiometricsPage extends StatefulWidget {
 
 class _EnrollBiometricsPageState extends State<EnrollBiometricsPage> {
   bool isEnrolling = false;
+  static const platform = MethodChannel('abc');
+
   @override
   Widget build(BuildContext context) {
-    return (isEnrolling)
+    return (!isEnrolling)
         ? BiometricPreEnrollWidget(
-            onStartEnrolling: () {
+            onStartEnrolling: () async {
+              var res = await platform.invokeMethod("startRegister");
+              print("startRegister$res");
               setState(() {
                 isEnrolling = true;
               });
             },
           )
-        : const BiometricEnrollingWidget();
+        : BiometricEnrollingWidget(
+            onNextPage: widget.onNextPage,
+          );
   }
 }

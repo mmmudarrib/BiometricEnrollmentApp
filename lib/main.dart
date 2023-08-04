@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zkfinger1/models/usb_device.dart';
+import 'package:zkfinger1/pages/verify_biometrics_page.dart';
+
 import 'enums/page_step_enum.dart';
 import 'pages/connect_device_page.dart';
 import 'pages/enroll_biometrics_page.dart';
@@ -42,7 +44,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   USBDeviceModel? biometricDeviceModel;
+  bool paired = false;
   static const platform = MethodChannel('abc');
+  Future<void> setupCode() async {
+    platform.setMethodCallHandler((call) async {
+      print("Method Invoked::Name${call.method}::Arguments::${call.arguments}");
+      if (call.method == "Done Registering") {
+        String res = await platform.invokeMethod("startIdentify");
+        print("startIdentify$res");
+      }
+    });
+  }
+
   Future<void> listDevices() async {
     try {
       final List<Object?> result = await platform.invokeMethod('listDevices');
@@ -64,7 +77,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     pageStep = PageStep.CONNECT_DEVICE;
+    setupCode();
     listDevices();
+
     super.initState();
   }
 
@@ -93,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                             height: 10,
                             width: 10,
                             decoration: BoxDecoration(
-                                color: Colors.grey,
+                                color: (paired) ? Colors.green : Colors.grey,
                                 borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
@@ -109,9 +124,9 @@ class _HomePageState extends State<HomePage> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black),
                             ),
-                            const Text(
-                              "Not Paired",
-                              style: TextStyle(
+                            Text(
+                              (paired) ? "Connected" : "Not Paired",
+                              style: const TextStyle(
                                   fontSize: 10.0, color: Colors.black),
                             )
                           ],
@@ -127,13 +142,23 @@ class _HomePageState extends State<HomePage> {
           ],
           centerTitle: true,
           title: const Text(
-            "Native Code Integration to Flutter ",
+            "ITALK2U",
             style: TextStyle(color: Colors.orange),
           )),
       body: (pageStep == PageStep.CONNECT_DEVICE)
           ? ConnectDevicePage(
               paired: biometricDeviceModel != null,
-              nextPage: () {},
+              nextPage: () async {
+                var res = await platform.invokeMethod('start');
+                print(res);
+
+                if (res == "connected" || res == "Device already connected!") {
+                  setState(() {
+                    pageStep = PageStep.ENTER_USER;
+                    paired = true;
+                  });
+                }
+              },
             )
           : (pageStep == PageStep.ENTER_USER)
               ? VerifyUserPage(
@@ -151,7 +176,15 @@ class _HomePageState extends State<HomePage> {
                         });
                       },
                     )
-                  : Container(),
+                  : (pageStep == PageStep.VERIFY_BIOMETRICS)
+                      ? VerifyBiometrics(
+                          startAgain: () {
+                            setState(() {
+                              pageStep = PageStep.CONNECT_DEVICE;
+                            });
+                          },
+                        )
+                      : Container(),
     );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class EnterUserDetailsWidget extends StatelessWidget {
   final VoidCallback nextPage;
-  const EnterUserDetailsWidget({
+  TextEditingController textEditingController = TextEditingController();
+  EnterUserDetailsWidget({
     super.key,
     required this.nextPage,
   });
@@ -29,10 +31,11 @@ class EnterUserDetailsWidget extends StatelessWidget {
                     "Please Enter the UserID below and click verify.",
                     style: TextStyle(fontSize: 16, wordSpacing: 4),
                   ),
-                  Container(
+                  SizedBox(
                     height: 60.0,
                     width: 400,
                     child: TextField(
+                      controller: textEditingController,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10.0),
@@ -54,6 +57,10 @@ class EnterUserDetailsWidget extends StatelessWidget {
                     ])),
                     child: ElevatedButton(
                       onPressed: () async {
+                        const platform = MethodChannel('abc');
+
+                        platform.invokeMethod("setUserID",
+                            {"uid": textEditingController.text.trim()});
                         nextPage();
                       },
                       style: ElevatedButton.styleFrom(

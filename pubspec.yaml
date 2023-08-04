@@ -38,6 +38,7 @@ dependencies:
   permission_handler: ^10.4.3
   animated_text_kit: ^4.2.2
   lottie:
+  dio: ^5.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

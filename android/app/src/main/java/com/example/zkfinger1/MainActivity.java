@@ -39,9 +39,9 @@ import java.util.Map;
 import io.flutter.plugin.common.MethodChannel.Result;
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "abc";
-    private static final int ZKTECO_VID =   0x1b55;
-    private static final int LIVE20R_PID =   0x0120;
-    private static final int LIVE10R_PID =   0x0124;
+    private static final int ZKTECO_VID = 0x1b55;
+    private static final int LIVE20R_PID = 0x0120;
+    private static final int LIVE10R_PID = 0x0124;
     private static final String TAG = "MainActivity";
     private final int REQUEST_PERMISSION_CODE = 9;
     private ZKUSBManager zkusbManager = null;
@@ -52,45 +52,88 @@ public class MainActivity extends FlutterActivity {
     private int deviceIndex = 0;
     private boolean isReseted = false;
     private String strUid = null;
-    private final static int ENROLL_COUNT   =   3;
+
+    private  String   strFeature=null;
+    private final static int ENROLL_COUNT = 3;
     private int enroll_index = 0;
     private byte[][] regtemparray = new byte[3][2048];  //register template buffer array
     private boolean bRegister = false;
     private UsbManager m_Manager;
+
+    private MethodChannel channel;
+
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
         GeneratedPluginRegistrant.registerWith(flutterEngine);
-         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(),CHANNEL).setMethodCallHandler((call, result)->{
+        channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL);
+        channel.setMethodCallHandler((call, result) -> {
             if (call.method.equals("start")) {
                 String response = onBnStart();
                 result.success(response);
+            } else if (call.method.equals("listDevices")) {
+                listDevices(result);
+            }else  if (call.method.equals("startRegister")) {
+                String response = startRegister();
+                result.success(response);
             }
-           else  if (call.method.equals("listDevices")) {
-                 listDevices(result);
-             }
+            else  if (call.method.equals("startIdentify")) {
+                String response = startIdentify();
+                result.success(response);
+            }   else  if (call.method.equals("setUserID")) {
+                String response = setUserID(call.argument("uid"));
+                result.success(response);
+            }else  if (call.method.equals("getUserID")) {
+                String response = getUid();
+                result.success(response);
+            }else  if (call.method.equals("getFeature")) {
+                String response = getFeature();
+                result.success(response);
+            }
+
+
         });
     }
+    public String setUserID(String uid) {
+        channel.invokeMethod("settingUserID",uid);
+        strUid=uid;
+        return "UID stored";
+    }
+    public String startRegister() {
+      bRegister=true;
+      return "RegisterStart";
+    }
+    public String getUid() {
 
+        return strUid;
+    }
 
-    public String onBnStart()
-    {
-        if (bStarted)
-        {
+    public String getFeature() {
+
+        return strFeature;
+    }
+    public String startIdentify() {
+        bRegister=false;
+        return "IdentifyStart";
+    }
+
+    public String onBnStart() {
+        if (bStarted) {
             return ("Device already connected!");
 
         }
-        if (!enumSensor())
-        {
-            return("404");
+        if (!enumSensor()) {
+            return ("404");
 
         }
         tryGetUSBPermission();
-        return "";
+        return "connected";
     }
+
     private void listDevices(Result result) {
+        channel.invokeMethod("list", "abc");
         Map<String, UsbDevice> devices = m_Manager.getDeviceList();
-        if ( devices == null ) {
+        if (devices == null) {
             result.error(TAG, "Could not get USB device list.", null);
             return;
         }
@@ -114,29 +157,21 @@ public class MainActivity extends FlutterActivity {
             /* if the app targets SDK >= android.os.Build.VERSION_CODES.Q and the app does not have permission to read from the device. */
             try {
                 dev.put("serialNumber", device.getSerialNumber());
-            } catch  ( java.lang.SecurityException e ) {
+            } catch (java.lang.SecurityException e) {
             }
         }
         dev.put("deviceId", device.getDeviceId());
         return dev;
     }
-    String doRegister(byte[] template)
-    {
-        byte[] bufids = new byte[256];
-        int ret = ZKFingerService.identify(template, bufids, 70, 1);
-        if (ret > 0)
-        {
-            String strRes[] = new String(bufids).split("\t");
 
+    void doRegister(byte[] template) {
+        byte[] bufids = new byte[256];
+        int ret;
+
+        if (enroll_index > 0 && (ret = ZKFingerService.verify(regtemparray[enroll_index - 1], template)) <= 0) {
             bRegister = false;
             enroll_index = 0;
-            return("the finger already enroll by " + strRes[0] + ",cancel enroll");
-        }
-        if (enroll_index > 0 && (ret = ZKFingerService.verify(regtemparray[enroll_index-1], template)) <= 0)
-        {
-            bRegister = false;
-            enroll_index = 0;
-            return "please press the same finger 3 times for the enrollment, cancel enroll, socre=" + ret;
+            channel.invokeMethod("registering", "please press the same finger 3 times for the enrollment, cancel enroll, socre=");
         }
         System.arraycopy(template, 0, regtemparray[enroll_index], 0, 2048);
         enroll_index++;
@@ -147,43 +182,44 @@ public class MainActivity extends FlutterActivity {
             if (0 < (ret = ZKFingerService.merge(regtemparray[0], regtemparray[1], regtemparray[2], regTemp))) {
                 int retVal = 0;
                 retVal = ZKFingerService.save(regTemp, strUid);
-                if (0 == retVal)
-                {
-                    String strFeature = Base64.encodeToString(regTemp, 0, ret, Base64.NO_WRAP);
+                if (0 == retVal) {
+                     strFeature = Base64.encodeToString(regTemp, 0, ret, Base64.NO_WRAP);
                     //dbManager.insertUser(strUid, strFeature);
-                    return("enroll succ");
-                }
-                else
-                {
-                    return ("enroll fail, add template fail, ret=" + retVal);
+                    channel.invokeMethod("Done Registering", strFeature);
+                } else {
+                    channel.invokeMethod("FAIL Registering", ret);
                 }
             } else {
-                return ("enroll fail");
+                channel.invokeMethod("FAIL Registering", "failure");
             }
         } else {
-            return("You need to press the " + (3 - enroll_index) + " times fingerprint");
+            String str = "Place the Finger on Scanner" + (3 - enroll_index) + " times";
+            channel.invokeMethod("registering", str);
         }
     }
 
-    String doIdentify(byte[] template)
+
+
+    void doIdentify(byte[] template)
     {
         byte[] bufids = new byte[256];
         int ret = ZKFingerService.identify(template, bufids, 70, 1);
         if (ret > 0) {
             String strRes[] = new String(bufids).split("\t");
-            return("identify succ, userid:" + strRes[0].trim() + ", score:" + strRes[1].trim());
+            String res= strRes[0].trim();
+            channel.invokeMethod("Identify", res);
         } else {
-            return("identify fail, ret=" + ret);
+            String res="identify fail, ret=" + ret;
+            channel.invokeMethod("IdentifyFail", res);
         }
     }
 
     private FingerprintCaptureListener fingerprintCaptureListener = new FingerprintCaptureListener() {
         @Override
         public void captureOK(byte[] fpImage) {
-            final Bitmap bitmap = ToolUtils.renderCroppedGreyScaleBitmap(fpImage, fingerprintSensor.getImageWidth(), fingerprintSensor.getImageHeight());
             runOnUiThread(new Runnable() {
                 public void run() {
-                   // imageView.setImageBitmap(bitmap);
+                    channel.invokeMethod("captureOK","abc");
                 }
             });
         }
@@ -195,14 +231,17 @@ public class MainActivity extends FlutterActivity {
 
         @Override
         public void extractOK(byte[] fpTemplate) {
-            if (bRegister)
-            {
-                doRegister(fpTemplate);
-            }
-            else
-            {
-                doIdentify(fpTemplate);
-            }
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    if(bRegister) {
+                        channel.invokeMethod("extractOK", "abc");
+                        doRegister(fpTemplate);
+                    }else{
+                        doIdentify(fpTemplate);
+                    }
+                }
+            });
+
         }
 
         @Override
