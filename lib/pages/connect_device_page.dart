@@ -33,7 +33,7 @@ class ConnectDevicePage extends StatelessWidget {
                       totalRepeatCount: 1,
                       animatedTexts: [
                         TypewriterAnimatedText(
-                            'Welcome to Native Code Integaration App'),
+                            'Welcome to Biometric Enrollment App'),
                       ],
                     ),
                   ),

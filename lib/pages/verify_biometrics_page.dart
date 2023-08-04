@@ -15,7 +15,7 @@ class VerifyBiometrics extends StatefulWidget {
 
 class _VerifyBiometricsState extends State<VerifyBiometrics> {
   static const platform = MethodChannel('abc');
-  String? userUID;
+  String? userUID = "";
   int status = 0;
   Future<void> setupCode() async {
     String uid = await platform.invokeMethod("getUserID");
@@ -88,9 +88,10 @@ class _VerifyBiometricsState extends State<VerifyBiometrics> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Let's Verify Biometrics for Jhon Doe",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    "Let's Verify Biometrics for $userUID",
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     message,

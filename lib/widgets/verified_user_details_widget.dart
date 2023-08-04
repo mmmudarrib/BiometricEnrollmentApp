@@ -29,7 +29,7 @@ class _VerifiedUserDetailsWidgetState extends State<VerifiedUserDetailsWidget> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const Text(
-                    "We are glad that you are using Mian Biometrics Module\nPlease press Proceed Next button when you are ready to start your Biometrics",
+                    "We are glad that you are using BBArray Biometrics Module\nPlease press Proceed Next button when you are ready to start your Biometrics",
                     style: TextStyle(fontSize: 16, wordSpacing: 4),
                   ),
                   Container(

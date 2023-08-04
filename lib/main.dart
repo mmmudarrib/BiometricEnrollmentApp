@@ -48,6 +48,7 @@ class _HomePageState extends State<HomePage> {
   static const platform = MethodChannel('abc');
   Future<void> setupCode() async {
     platform.setMethodCallHandler((call) async {
+      String res = await platform.invokeMethod("clear");
       print("Method Invoked::Name${call.method}::Arguments::${call.arguments}");
       if (call.method == "Done Registering") {
         String res = await platform.invokeMethod("startIdentify");
@@ -140,10 +141,16 @@ class _HomePageState extends State<HomePage> {
               width: 50,
             ),
           ],
+          leading: Image.asset(
+            "assets/images/bbarray_logo.png",
+            width: 150,
+            height: 200,
+          ),
           centerTitle: true,
-          title: const Text(
-            "ITALK2U",
-            style: TextStyle(color: Colors.orange),
+          title: Image.asset(
+            "assets/images/logo_italk.png",
+            width: 150,
+            height: 200,
           )),
       body: (pageStep == PageStep.CONNECT_DEVICE)
           ? ConnectDevicePage(
@@ -178,7 +185,8 @@ class _HomePageState extends State<HomePage> {
                     )
                   : (pageStep == PageStep.VERIFY_BIOMETRICS)
                       ? VerifyBiometrics(
-                          startAgain: () {
+                          startAgain: () async {
+                            String res = await platform.invokeMethod("clear");
                             setState(() {
                               pageStep = PageStep.CONNECT_DEVICE;
                             });

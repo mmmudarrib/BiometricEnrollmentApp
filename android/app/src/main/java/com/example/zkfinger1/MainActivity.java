@@ -90,6 +90,10 @@ public class MainActivity extends FlutterActivity {
                 String response = getFeature();
                 result.success(response);
             }
+            else  if (call.method.equals("clear")) {
+                String response = clear();
+                result.success(response);
+            }
 
 
         });
@@ -102,6 +106,10 @@ public class MainActivity extends FlutterActivity {
     public String startRegister() {
       bRegister=true;
       return "RegisterStart";
+    }
+    public String clear() {
+        ZKFingerService.clear();
+        return "Cleared";
     }
     public String getUid() {
 
