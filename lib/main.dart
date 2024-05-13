@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:zkfinger1/models/usb_device.dart';
 import 'package:zkfinger1/pages/verify_biometrics_page.dart';
 
 import 'enums/page_step_enum.dart';
+import 'pages/choice_page.dart';
 import 'pages/connect_device_page.dart';
 import 'pages/enroll_biometrics_page.dart';
 import 'pages/verify_user_page.dart';
@@ -15,12 +15,7 @@ import 'pages/verify_user_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 //You can request multiple permissions at once.
-  Map<Permission, PermissionStatus> statuses = await [
-    Permission.camera,
-    Permission.storage,
-    Permission.photos
-  ].request();
-  print("PERMISSIONS::${statuses[Permission.storage]}");
+
   runApp(const MyApp());
 }
 
@@ -161,38 +156,47 @@ class _HomePageState extends State<HomePage> {
 
                 if (res == "connected" || res == "Device already connected!") {
                   setState(() {
-                    pageStep = PageStep.ENTER_USER;
+                    pageStep = PageStep.CHOICE_PAGE;
                     paired = true;
                   });
                 }
               },
             )
-          : (pageStep == PageStep.ENTER_USER)
-              ? VerifyUserPage(
-                  onNextPage: () {
+          : (pageStep == PageStep.CHOICE_PAGE)
+              ? VerifyChoicePage(
+                  onNextPage: (step) {
                     setState(() {
-                      pageStep = PageStep.ENTER_BIOMETRICS;
+                      pageStep = step;
                     });
                   },
                 )
-              : (pageStep == PageStep.ENTER_BIOMETRICS)
-                  ? EnrollBiometricsPage(
+              : (pageStep == PageStep.ENTER_USER)
+                  ? VerifyUserPage(
                       onNextPage: () {
                         setState(() {
-                          pageStep = PageStep.VERIFY_BIOMETRICS;
+                          pageStep = PageStep.ENTER_BIOMETRICS;
                         });
                       },
                     )
-                  : (pageStep == PageStep.VERIFY_BIOMETRICS)
-                      ? VerifyBiometrics(
-                          startAgain: () async {
-                            String res = await platform.invokeMethod("clear");
+                  : (pageStep == PageStep.ENTER_BIOMETRICS)
+                      ? EnrollBiometricsPage(
+                          onNextPage: () {
                             setState(() {
-                              pageStep = PageStep.CONNECT_DEVICE;
+                              pageStep = PageStep.VERIFY_BIOMETRICS;
                             });
                           },
                         )
-                      : Container(),
+                      : (pageStep == PageStep.VERIFY_BIOMETRICS)
+                          ? VerifyBiometrics(
+                              startAgain: () async {
+                                String res =
+                                    await platform.invokeMethod("clear");
+                                setState(() {
+                                  pageStep = PageStep.CONNECT_DEVICE;
+                                });
+                              },
+                            )
+                          : Container(),
     );
   }
 }
